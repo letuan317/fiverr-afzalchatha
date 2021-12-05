@@ -5,11 +5,14 @@ from PyQt5.QtGui import *
 
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
+from fake_useragent import UserAgent
 
 
 import sys
 import time
 import random
+import platform
 
 import essentials
 
@@ -33,8 +36,24 @@ class ThreadClass(QThread):
     def __init__(self, parent=None,):
         super(ThreadClass, self).__init__(parent)
         global_log.info("Open chromedriver")
-        self.driver = webdriver.Chrome('./chromedriver96.exe')
+        options = Options()
+        ua = UserAgent()
+        userAgent = ua.random
+        options.add_argument(f'user-agent={userAgent}')
+
+        if platform.system() == "Windows":
+            global_log.debug("Selenium run on Windows")
+            chrome_path = './chromedriver96.exe'
+        elif platform.system() == "Darwin":
+            global_log.debug("Selenium run on Mac OS")
+            chrome_path = './chromedriver'
+        else:
+            sys.exit()
+        self.driver = webdriver.Chrome(
+            chrome_options=options, executable_path=chrome_path)
+
         link = "https://www.gov.uk/book-pupil-driving-test"
+
         global_log.info("Open "+link)
         self.driver.get(link)
 
