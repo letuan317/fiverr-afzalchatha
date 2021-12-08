@@ -7,12 +7,14 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 from fake_useragent import UserAgent
+from selenium.webdriver.chrome.service import Service
 
 
 import sys
 import time
 import random
 import platform
+import json
 
 import essentials
 
@@ -39,7 +41,13 @@ class ThreadClass(QThread):
         options = Options()
         ua = UserAgent()
         userAgent = ua.random
-        options.add_argument(f'user-agent={userAgent}')
+        # options.add_argument(f'user-agent={userAgent}')
+
+        with open("config.json") as json_file:
+            data = json.load(json_file)
+
+        options.add_argument(
+            f"user-data-dir={data['chrome_profile']}")
 
         if platform.system() == "Windows":
             global_log.debug("Selenium run on Windows")
@@ -50,9 +58,12 @@ class ThreadClass(QThread):
         else:
             sys.exit()
         try:
-            self.driver = webdriver.Chrome(
-                chrome_options=options, executable_path=chrome_path)
+
+            s = Service(chrome_path)
+            #self.driver = webdriver.Chrome(chrome_options=options, executable_path=chrome_path)
+            self.driver = webdriver.Chrome(options=options, service=s)
         except Exception as e:
+            print(e)
             global_log.error(e)
             sys.exit()
 
