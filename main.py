@@ -49,13 +49,18 @@ class ThreadClass(QThread):
             chrome_path = './chromedriver'
         else:
             sys.exit()
-        self.driver = webdriver.Chrome(
-            chrome_options=options, executable_path=chrome_path)
+        try:
+            self.driver = webdriver.Chrome(
+                chrome_options=options, executable_path=chrome_path)
+        except Exception as e:
+            global_log.error(e)
+            sys.exit()
 
         link = "https://www.gov.uk/book-pupil-driving-test"
 
         global_log.info("Open "+link)
         self.driver.get(link)
+        global_log.debug(self.driver.title)
 
     def run(self):
         while True:
@@ -66,12 +71,86 @@ class ThreadClass(QThread):
 
         global_log.warning("Start")
         num_of_reserve = 0
-        for i in range(1, 21):
-            num_of_reserve += 1
-            self.set_total_clicked += 1
-            self.update_status_signal.emit(
-                "{}/10, click: {}/{}, time delay: random".format(str(num_of_reserve), str(self.set_total_clicked), str(self.set_total_clicks)))
-            self.update_progress_signal.emit(num_of_reserve)
+        temp_status_message = "{}/10, click: {}/{}, time delay: {}s".format(str(
+            num_of_reserve), str(self.set_total_clicked), str(self.set_total_clicks), str())
+        # Click on Book Test
+        # Check this page have green available box
+        # if not click on previous check if not click on next available , if have go next
+        # next available
+
+        global_log.info("BOOK TEST clicked")
+        global_log.debug(self.driver.title)
+        self.driver.find_element_by_id("submitSlotSearch").click()
+
+        self.set_total_clicked += 1
+        self.update_status_signal.emit(temp_status_message)
+        is_previous_clicked = False
+
+        while True:
+            global_log.info("Check Green Available Slot")
+            try:
+                global_log.debug(self.driver.title)
+                elements_available_slots = self.driver.find_elements_by_class_name(
+                    "day.slotsavailable")
+                if(len(elements_available_slots) > 0):
+                    global_log.warning("Found {} available slots" +
+                                       str(len(elements_available_slots)))
+                    for element_slot in elements_available_slots:
+                        global_log.debug(self.driver.title)
+                        element_slot.click()
+                        self.set_total_clicked += 1
+                        self.update_status_signal.emit(temp_status_message)
+                        global_log.info("Click on available slot")
+                        try:
+                            self. driver.find_element_by_xpath(
+                                "//*[starts-with(@id, 'reserve_')]").click()
+                            global_log.info("Click on reserve")
+                            num_of_reserve += 1
+                            self.set_total_clicked += 1
+                            self.update_status_signal.emit(temp_status_message)
+                            try:
+                                self.driver.find_elements_by_xpath(
+                                    "//*[contains(text(), 'Return to search results')]").clicl()
+                                global_log.info("CLick on return Search")
+                                self.set_total_clicked += 1
+                                self.update_status_signal.emit(
+                                    temp_status_message)
+                                time.sleep(1)
+                            except Exception as e:
+                                global_log.error(e)
+                        except Exception as e:
+                            global_log.error(e)
+
+                else:
+                    global_log.warning("NO available slots in this page")
+                    if not is_previous_clicked:
+                        try:
+                            global_log.debug(self.driver.title)
+                            self.driver.find_element_by_id(
+                                "searchForWeeklySlotsPreviousAvailable").click()
+                            global_log.info("CLick on Previous link")
+                            self.set_total_clicked += 1
+                            self.update_status_signal.emit(temp_status_message)
+                            is_previous_clicked = True
+                        except Exception as e:
+                            global_log.error(e)
+                            time.sleep(1)
+
+                    else:
+                        try:
+                            global_log.debug(self.driver.title)
+                            self.driver.find_element_by_id(
+                                "searchForWeeklySlotsNextAvailable").click()
+                            global_log.info("CLick on Next link")
+                            self.set_total_clicked += 1
+                            self.update_status_signal.emit(temp_status_message)
+                        except Exception as e:
+                            global_log.error(e)
+                            time.sleep(1)
+
+            except Exception as e:
+                global_log.error(e)
+
             if num_of_reserve == 10:
                 time_delay = random.randint(10, 20)
                 for i in range(time_delay, 0, -1):
@@ -79,8 +158,18 @@ class ThreadClass(QThread):
                         "{}/10, click: {}/{}, time delay: {}s".format(str(num_of_reserve), str(self.set_total_clicked), str(self.set_total_clicks), str(i)))
                     time.sleep(1)
                 num_of_reserve = 0
+                # TODO Testing, so top here when 10 clicks
+                sys.exit()
             if self.set_total_clicked == self.set_total_clicks:
                 break
+
+        for i in range(1, 21):
+            num_of_reserve += 1
+            self.set_total_clicked += 1
+            self.update_status_signal.emit(
+                "{}/10, click: {}/{}, time delay: random".format(str(num_of_reserve), str(self.set_total_clicked), str(self.set_total_clicks)))
+            self.update_progress_signal.emit(num_of_reserve)
+
         global_log.warning("Done")
         self.update_status_signal.emit("DONE")
 
