@@ -63,6 +63,7 @@ class ThreadClass(QThread):
             #self.driver = webdriver.Chrome(chrome_options=options, executable_path=chrome_path)
             self.driver = webdriver.Chrome(options=options, service=s)
         except Exception as e:
+            print("error")
             print(e)
             global_log.error(e)
             sys.exit()
